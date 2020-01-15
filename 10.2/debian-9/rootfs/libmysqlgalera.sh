@@ -36,9 +36,17 @@ get_galera_cluster_bootstrap_value() {
         if [[ -z "$clusterAddress" ]]; then
             clusterBootstrap="yes"
         elif [[ -n "$clusterAddress" ]]; then
-            local host=${clusterAddress#*://}
-            local host=${host%:*}
-            if ! resolveip -s "$host" >/dev/null 2>&1; then
+            local hosts
+            IFS=',' read -r -a hosts <<< ${clusterAddress#*://}
+            local foundResolvableHost = false
+            for host in hosts; do
+                local host=${host%:*}
+                if resolveip -s "$host" >/dev/null 2>&1; then
+                    foundResolvableHost = true
+                    break
+                fi
+            done
+            if [ "$foundResolvableHost" = false ]; then
                 clusterBootstrap="yes"
             fi
         fi
