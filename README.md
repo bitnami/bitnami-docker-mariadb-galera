@@ -425,6 +425,7 @@ The first step is to start the MariaDB Galera bootstrap node.
 $ docker run --name mariadb-galera-0 \
   -e MARIADB_GALERA_CLUSTER_BOOTSTRAP=yes \
   -e MARIADB_GALERA_CLUSTER_NAME=my_galera \
+  -e MARIADB_GALERA_CLUSTER_ADDRESS=gcomm:// \
   -e MARIADB_GALERA_MARIABACKUP_USER=my_mariabackup_user \
   -e MARIADB_GALERA_MARIABACKUP_PASSWORD=my_mariabackup_password \
   -e MARIADB_ROOT_PASSWORD=my_root_password \
@@ -443,9 +444,10 @@ Next we add a new node to the cluster.
 ```console
 $ docker run --name mariadb-galera-1 --link mariadb-galera-0:mariadb-galera \
   -e MARIADB_GALERA_CLUSTER_NAME=my_galera \
-  -e MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://mariadb-galera \
+  -e MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://mariadb-galera-0:4567 \
   -e MARIADB_GALERA_MARIABACKUP_USER=my_mariabackup_user \
   -e MARIADB_GALERA_MARIABACKUP_PASSWORD=my_mariabackup_password \
+  -e MARIADB_ROOT_PASSWORD=my_root_password \
   bitnami/mariadb-galera:latest
 ```
 
