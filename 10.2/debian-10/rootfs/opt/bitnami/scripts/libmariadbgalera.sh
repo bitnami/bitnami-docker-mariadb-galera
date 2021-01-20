@@ -897,8 +897,10 @@ select VARIABLE_VALUE from information_schema.GLOBAL_STATUS where VARIABLE_NAME 
 EOF
 )"
     if [[ $is_ready == 'ON' ]]; then
+        debug "WSREP status $is_ready"
         true
     else
+        debug "WSREP status $is_ready"
         false
     fi
 }
