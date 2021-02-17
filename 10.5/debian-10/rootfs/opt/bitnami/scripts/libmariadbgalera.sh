@@ -109,10 +109,10 @@ get_galera_cluster_bootstrap_value() {
             read -r -a hosts <<< "$(tr ',' ' ' <<< "${clusterAddress#*://}")"
             if [[ "${#hosts[@]}" -eq "1" ]]; then
                 read -r -a cluster_ips <<< "$(getent hosts "${hosts[0]}" | awk '{print $1}' | tr '\n' ' ')"
-                if [[ "${#cluster_ips[@]}" -gt "1" ]] || ( [[ "${#cluster_ips[@]}" -eq "1" ]] && [[ "${cluster_ips[0]}" != "$local_ip" ]] ) ; then
-                    clusterBootstrap="no"
-                else
+                if [[ "${#cluster_ips[@]}" -eq "1" ]] && [[ "${cluster_ips[0]}" == "$local_ip" ]] ; then
                     clusterBootstrap="yes"
+                else
+                    clusterBootstrap="no"
                 fi
             else
                 for host in "${hosts[@]}"; do
