@@ -104,7 +104,6 @@ get_galera_cluster_bootstrap_value() {
         if [[ -z "$clusterAddress" ]]; then
             clusterBootstrap="yes"
         elif [[ -n "$clusterAddress" ]]; then
-            clusterBootstrap="yes"
             local_ip=$(hostname -i)
             read -r -a hosts <<< "$(tr ',' ' ' <<< "${clusterAddress#*://}")"
             if [[ "${#hosts[@]}" -eq "1" ]]; then
@@ -117,7 +116,9 @@ get_galera_cluster_bootstrap_value() {
             else
                 for host in "${hosts[@]}"; do
                     host_ip=$(getent hosts "${host%:*}" | awk '{print $1}')
-                    if [[ -n "$host_ip" ]] && [[ "$host_ip" != "$local_ip" ]]; then
+                    if [[ -n "$host_ip" ]] && [[ "$host_ip" == "$local_ip" ]]; then
+                        clusterBootstrap="yes"
+                    else
                         clusterBootstrap="no"
                     fi
                 done
