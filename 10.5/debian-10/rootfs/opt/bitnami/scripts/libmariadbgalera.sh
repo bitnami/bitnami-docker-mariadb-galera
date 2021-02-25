@@ -93,11 +93,12 @@ get_galera_cluster_bootstrap_value() {
     #   We disable the bootstrap right after processing environment variables in "run.sh" with "set_previous_boot".
     # - Users can force a bootstrap to happen again on a node, by setting the environment variable "MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP".
     # When the node is not marked to bootstrap, the node will join an existing cluster.
-    clusterBootstrap="$DB_GALERA_CLUSTER_BOOTSTRAP"
-    if is_boolean_yes "$clusterBootstrap"; then
-        if is_boolean_yes "$(get_previous_boot)"; then
-            clusterBootstrap="no"
-        fi
+    if is_boolean_yes "$DB_GALERA_FORCE_SAFETOBOOTSTRAP"; then
+        clusterBootstrap="yes"
+    elif is_boolean_yes "$DB_GALERA_CLUSTER_BOOTSTRAP"; then
+        clusterBootstrap="yes"
+    elif is_boolean_yes "$(get_previous_boot)"; then
+        clusterBootstrap="no"
     else
         local clusterAddress
         clusterAddress="$DB_GALERA_CLUSTER_ADDRESS"
