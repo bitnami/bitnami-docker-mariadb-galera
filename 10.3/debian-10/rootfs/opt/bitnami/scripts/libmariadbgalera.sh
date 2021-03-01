@@ -457,7 +457,7 @@ mysql_initialize() {
     rm -f "$DB_PID_FILE"
 
     debug "Ensuring expected directories/files exist"
-    for dir in "$DB_DATA_DIR" "$DB_TMP_DIR" "$DB_LOGS_DIR"; do
+    for dir in "$DB_DATA_DIR" "$DB_TMP_DIR" "$DB_LOGS_DIR" "$DB_GALERA_BOOTSTRAP_DIR"; do
         ensure_dir_exists "$dir"
         am_i_root && chown "$DB_DAEMON_USER:$DB_DAEMON_GROUP" "$dir"
     done
