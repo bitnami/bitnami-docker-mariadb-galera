@@ -81,8 +81,6 @@ mysql_extra_flags() {
 #########################
 get_galera_cluster_bootstrap_value() {
     local clusterBootstrap
-    local local_ip
-    local host_ip
 
     # This block evaluate if the cluster needs to be boostraped or not.
     # When the node is marked to bootstrap:
@@ -99,33 +97,56 @@ get_galera_cluster_bootstrap_value() {
         clusterBootstrap="yes"
     elif is_boolean_yes "$(get_previous_boot)"; then
         clusterBootstrap="no"
+    elif ! is_boolean_yes "$(has_galera_cluster_other_nodes)"; then
+        clusterBootstrap="yes"
     else
-        local clusterAddress
-        clusterAddress="$DB_GALERA_CLUSTER_ADDRESS"
-        if [[ -z "$clusterAddress" ]]; then
-            clusterBootstrap="yes"
-        elif [[ -n "$clusterAddress" ]]; then
-            clusterBootstrap="yes"
-            local_ip=$(hostname -i)
-            read -r -a hosts <<< "$(tr ',' ' ' <<< "${clusterAddress#*://}")"
-            if [[ "${#hosts[@]}" -eq "1" ]]; then
-                read -r -a cluster_ips <<< "$(getent hosts "${hosts[0]}" | awk '{print $1}' | tr '\n' ' ')"
-                if [[ "${#cluster_ips[@]}" -gt "1" ]] || { [[ "${#cluster_ips[@]}" -eq "1" ]] && [[ "${cluster_ips[0]}" != "$local_ip" ]]; }; then
-                    clusterBootstrap="no"
-                else
-                    clusterBootstrap="yes"
-                fi
-            else
-                for host in "${hosts[@]}"; do
-                    host_ip=$(getent hosts "${host%:*}" | awk '{print $1}')
-                    if [[ -n "$host_ip" ]] && [[ "$host_ip" != "$local_ip" ]]; then
-                        clusterBootstrap="no"
-                    fi
-                done
-            fi
-        fi
+        clusterBootstrap="no"
     fi
     echo "$clusterBootstrap"
+}
+
+########################
+# Whether the Galera cluster has other running nodes
+# Globals:
+#   DB_*
+# Arguments:
+#   None
+# Returns:
+#   None
+#########################
+has_galera_cluster_other_nodes() {
+    local local_ip
+    local host_ip
+    local clusterAddress
+    local hasNodes
+
+    hasNodes="yes"
+    clusterAddress="$DB_GALERA_CLUSTER_ADDRESS"
+    if [[ -z "$clusterAddress" ]]; then
+        hasNodes="no"
+    elif [[ -n "$clusterAddress" ]]; then
+        hasNodes="no"
+        local_ip=$(hostname -i)
+        read -r -a hosts <<< "$(tr ',' ' ' <<< "${clusterAddress#*://}")"
+        if [[ "${#hosts[@]}" -eq "1" ]]; then
+            read -r -a cluster_ips <<< "$(getent hosts "${hosts[0]}" | awk '{print $1}' | tr '\n' ' ')"
+            if [[ "${#cluster_ips[@]}" -gt "1" ]] || ( [[ "${#cluster_ips[@]}" -eq "1" ]] && [[ "${cluster_ips[0]}" != "$local_ip" ]] ) ; then
+                hasNodes="yes"
+            else
+                hasNodes="no"
+            fi
+        else
+            hasNodes="no"
+            for host in "${hosts[@]}"; do
+                host_ip=$(getent hosts "${host%:*}" | awk '{print $1}')
+                if [[ -n "$host_ip" ]] && [[ "$host_ip" != "$local_ip" ]]; then
+                    hasNodes="yes"
+                    break
+                fi
+            done
+        fi
+    fi
+    echo "$hasNodes"
 }
 
 ########################
@@ -138,14 +159,13 @@ get_galera_cluster_bootstrap_value() {
 #   None
 #########################
 get_galera_cluster_address_value() {
-    local clusterBootstrap
     local clusterAddress
-    clusterBootstrap="$(get_galera_cluster_bootstrap_value)"
-    if is_boolean_yes "$clusterBootstrap"; then
-        clusterAddress="gcomm://"
-    else
+    if ! is_boolean_yes "$(get_galera_cluster_bootstrap_value)" && is_boolean_yes "$(has_galera_cluster_other_nodes)"; then
         clusterAddress="$DB_GALERA_CLUSTER_ADDRESS"
+    else
+        clusterAddress="gcomm://"
     fi
+    debug "Set Galera cluster address to ${clusterAddress}"
     echo "$clusterAddress"
 }
 
@@ -210,7 +230,7 @@ mysql_validate() {
         print_validation_error "Galera cluster cannot be created without setting the environment variable $(get_env_var GALERA_CLUSTER_NAME)."
     fi
 
-    if ! is_boolean_yes "$(get_galera_cluster_bootstrap_value)" && [[ -z "$(get_galera_cluster_address_value)" ]]; then
+    if [[ -z "$(get_galera_cluster_address_value)" ]]; then
         print_validation_error "Galera cluster cannot be created without setting the environment variable $(get_env_var GALERA_CLUSTER_ADDRESS). If you are bootstrapping a new Galera cluster, set the environment variable $(get_env_var GALERA_CLUSTER_ADDRESS)=yes."
     fi
 
