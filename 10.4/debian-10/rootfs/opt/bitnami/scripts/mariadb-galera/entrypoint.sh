@@ -5,18 +5,18 @@
 set -o errexit
 set -o nounset
 set -o pipefail
-# set -o xtrace # Uncomment this line for debugging purpose
+# set -o xtrace # Uncomment this line for debugging purposes
 
 # Load libraries
 . /opt/bitnami/scripts/libbitnami.sh
 . /opt/bitnami/scripts/libmariadbgalera.sh
 
 # Load MariaDB environment variables
-eval "$(mysql_env)"
+. /opt/bitnami/scripts/mariadb-env.sh
 
 print_welcome_page
 
-if [[ "$*" = "/opt/bitnami/scripts/mariadb-galera/run.sh" ]]; then
+if [[ "$1" = "/opt/bitnami/scripts/mariadb-galera/run.sh" ]]; then
     info "** Starting MariaDB setup **"
     /opt/bitnami/scripts/mariadb-galera/setup.sh
     info "** MariaDB setup finished! **"

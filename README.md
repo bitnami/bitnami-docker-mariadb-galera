@@ -4,7 +4,7 @@
 
 [https://mariadb.com/kb/en/library/galera-cluster/](https://mariadb.com/kb/en/library/galera-cluster/)
 
-# TL;DR;
+# TL;DR
 
 ```console
 $ docker run --name mariadb \
@@ -24,8 +24,8 @@ $ docker-compose up -d
 * Bitnami closely tracks upstream source changes and promptly publishes new versions of this image using our automated systems.
 * With Bitnami images the latest bug fixes and features are available as soon as possible.
 * Bitnami containers, virtual machines and cloud images use the same components and configuration approach - making it easy to switch between formats based on your project needs.
-* All our images are based on [minideb](https://github.com/bitnami/minideb) a minimalist Debian based container image which gives you a small base container image and the familiarity of a leading linux distribution.
-* All Bitnami images available in Docker Hub are signed with [Docker Content Trust (DTC)](https://docs.docker.com/engine/security/trust/content_trust/). You can use `DOCKER_CONTENT_TRUST=1` to verify the integrity of the images.
+* All our images are based on [minideb](https://github.com/bitnami/minideb) a minimalist Debian based container image which gives you a small base container image and the familiarity of a leading Linux distribution.
+* All Bitnami images available in Docker Hub are signed with [Docker Content Trust (DCT)](https://docs.docker.com/engine/security/trust/content_trust/). You can use `DOCKER_CONTENT_TRUST=1` to verify the integrity of the images.
 * Bitnami container images are released daily with the latest distribution packages available.
 
 > This [CVE scan report](https://quay.io/repository/bitnami/mariadb-galera?tab=tags) contains a security report with all open CVEs. To get the list of actionable security issues, find the "latest" tag, click the vulnerability report link under the corresponding "Security scan" field and then select the "Only show fixable" filter on the next page.
@@ -47,10 +47,10 @@ Non-root container images add an extra layer of security and are generally recom
 Learn more about the Bitnami tagging policy and the difference between rolling tags and immutable tags [in our documentation page](https://docs.bitnami.com/tutorials/understand-rolling-tags-containers/).
 
 
-* [`10.4-debian-10`, `10.4.13-debian-10-r7`, `10.4`, `10.4.13` (10.4/debian-10/Dockerfile)](https://github.com/bitnami/bitnami-docker-mariadb-galera/blob/10.4.13-debian-10-r7/10.4/debian-10/Dockerfile)
-* [`10.3-debian-10`, `10.3.23-debian-10-r13`, `10.3`, `10.3.23`, `latest` (10.3/debian-10/Dockerfile)](https://github.com/bitnami/bitnami-docker-mariadb-galera/blob/10.3.23-debian-10-r13/10.3/debian-10/Dockerfile)
-* [`10.2-debian-10`, `10.2.32-debian-10-r12`, `10.2`, `10.2.32` (10.2/debian-10/Dockerfile)](https://github.com/bitnami/bitnami-docker-mariadb-galera/blob/10.2.32-debian-10-r12/10.2/debian-10/Dockerfile)
-* [`10.1-debian-10`, `10.1.45-debian-10-r13`, `10.1`, `10.1.45` (10.1/debian-10/Dockerfile)](https://github.com/bitnami/bitnami-docker-mariadb-galera/blob/10.1.45-debian-10-r13/10.1/debian-10/Dockerfile)
+* [`10.5`, `10.5-debian-10`, `10.5.9`, `10.5.9-debian-10-r45`, `latest` (10.5/debian-10/Dockerfile)](https://github.com/bitnami/bitnami-docker-mariadb-galera/blob/10.5.9-debian-10-r45/10.5/debian-10/Dockerfile)
+* [`10.4`, `10.4-debian-10`, `10.4.18`, `10.4.18-debian-10-r46` (10.4/debian-10/Dockerfile)](https://github.com/bitnami/bitnami-docker-mariadb-galera/blob/10.4.18-debian-10-r46/10.4/debian-10/Dockerfile)
+* [`10.3`, `10.3-debian-10`, `10.3.28`, `10.3.28-debian-10-r48` (10.3/debian-10/Dockerfile)](https://github.com/bitnami/bitnami-docker-mariadb-galera/blob/10.3.28-debian-10-r48/10.3/debian-10/Dockerfile)
+* [`10.2`, `10.2-debian-10`, `10.2.37`, `10.2.37-debian-10-r50` (10.2/debian-10/Dockerfile)](https://github.com/bitnami/bitnami-docker-mariadb-galera/blob/10.2.37-debian-10-r50/10.2/debian-10/Dockerfile)
 
 Subscribe to project updates by watching the [bitnami/mariadb-galera GitHub repo](https://github.com/bitnami/bitnami-docker-mariadb-galera).
 
@@ -180,6 +180,8 @@ When the container is executed for the first time, it will execute the files wit
 
 In order to have your custom files inside the docker image you can mount them as a volume.
 
+Take into account those scripts are treated differently depending on the extension. While the `.sh` scripts are executed in all the nodes; the `.sql` and `.sql.gz` scripts are only executed in the bootstrap node. The reason behind this differentiation is that the `.sh` scripts allow adding conditions to determine what is the node running the script, while these conditions can't be set using `.sql` nor `sql.gz` files. This way it is possible to cover different use cases depending on their needs.
+
 ## Passing extra command-line flags to mysqld startup
 
 Passing extra command-line flags to the mysqld service command is possible through the following env var:
@@ -209,7 +211,7 @@ services:
 It is possible to configure the character set and collation used by default by the database with the following environment variables:
 
 - `MARIADB_CHARACTER_SET`: The default character set to use. Default: `utf8`
-- `MARIADB_COLLATION`: The default collation to use. Default: `utf8_general_ci`
+- `MARIADB_COLLATE`: The default collation to use. Default: `utf8_general_ci`
 
 ## Setting the root password on first run
 
@@ -325,6 +327,8 @@ LDAP configuration parameters must be specified if you wish to enable LDAP suppo
 - `LDAP_BASE_LOOKUP`: LDAP base lookup (Optional). No defaults.
 - `LDAP_NSS_INITGROUPS_IGNOREUSERS`: LDAP ignored users. Defaults to `root,nslcd`.
 - `LDAP_SCOPE`: LDAP search scope (Optional). No defaults.
+- `LDAP_SEARCH_FILTER`: LDAP search filter on posix users (Optional). No defaults.
+- `LDAP_SEARCH_MAP`: LDAP custom search attribute to be looked up on posix users (Optional). No defaults.
 - `LDAP_TLS_REQCERT`: LDAP TLS check on server certificates (Optional). No defaults.
 
 ### Step 1: Start MariaDB Galera with LDAP support
@@ -414,6 +418,8 @@ A **zero downtime** MariaDB Galera [replication](https://dev.mysql.com/doc/refma
 - `MARIADB_GALERA_NODE_ADDRESS`: Node address to report to the Galera cluster. Defaults to eth0 address inside container.
 - `MARIADB_GALERA_MARIABACKUP_USER`: [mariabackup](https://mariadb.com/kb/en/library/mariabackup-overview/) username for [State Snapshot Transfer(SST)](https://galeracluster.com/library/documentation/glossary.html#term-state-snapshot-transfer). Defaults to `mariabackup`.
 - `MARIADB_GALERA_MARIABACKUP_PASSWORD`: [mariabackup](https://mariadb.com/kb/en/library/mariabackup-overview/) password for SST. No defaults.
+- `MARIADB_REPLICATION_USER`: mariadb replication username. Defaults to `monitor`.
+- `MARIADB_REPLICATION_PASSWORD`: mariadb replication user password. Defaults to `monitor`.
 
 In a MariaDB Galera cluster the first node should be a bootstrap node (started with `MARIADB_GALERA_CLUSTER_BOOTSTRAP=yes`). The other nodes in the cluster should not be started with this environment variable, instead the `MARIADB_GALERA_CLUSTER_ADDRESS` variable should be specified. All the nodes in the MariaDB Galera cluster are in read-write mode and therefore offers high availability for high traffic applications.
 
@@ -430,6 +436,8 @@ $ docker run -d --name mariadb-galera-0 \
   -e MARIADB_USER=my_user \
   -e MARIADB_PASSWORD=my_password \
   -e MARIADB_DATABASE=my_database \
+  -e MARIADB_REPLICATION_USER=my_replication_user \
+  -e MARIADB_REPLICATION_PASSWORD=my_replication_password \
   bitnami/mariadb-galera:latest
 ```
 
@@ -446,6 +454,8 @@ $ docker run -d --name mariadb-galera-1 --link mariadb-galera-0:mariadb-galera \
   -e MARIADB_GALERA_MARIABACKUP_USER=my_mariabackup_user \
   -e MARIADB_GALERA_MARIABACKUP_PASSWORD=my_mariabackup_password \
   -e MARIADB_ROOT_PASSWORD=my_root_password \
+  -e MARIADB_REPLICATION_USER=my_replication_user \
+  -e MARIADB_REPLICATION_PASSWORD=my_replication_password \
   bitnami/mariadb-galera:latest
 ```
 
@@ -508,6 +518,74 @@ $ docker run --name mariadb \
   -e ALLOW_EMPTY_PASSWORD=yes \
   -v /path/to/my.cnf:/opt/bitnami/mariadb/conf/my.cnf:ro \
   bitnami/mariadb-galera:latest
+```
+
+# Customize this image
+
+The Bitnami MariaDB Galera Docker image is designed to be extended so it can be used as the base image for your custom configuration.
+
+## Extend this image
+
+Before extending this image, please note there are certain configuration settings you can modify using the original image:
+
+- Settings that can be adapted using environment variables. For instance, you can change the ports used by MariaDB, by setting the environment variables `MARIADB_PORT_NUMBER` or the character set using `MARIADB_CHARACTER_SET` respectively.
+
+If your desired customizations cannot be covered using the methods mentioned above, extend the image. To do so, create your own image using a Dockerfile with the format below:
+
+```Dockerfile
+FROM bitnami/mariadb-galera
+## Put your customizations below
+...
+```
+
+Here is an example of extending the image with the following modifications:
+
+- Install the `vim` editor
+- Modify the MariaDB configuration file
+- Modify the ports used by MariaDB
+- Change the user that runs the container
+
+```Dockerfile
+FROM bitnami/mariadb-galera
+LABEL maintainer "Bitnami <containers@bitnami.com>"
+
+## Change user to perform privileged actions
+USER 0
+## Install 'vim'
+RUN install_packages vim
+## Revert to the original non-root user
+USER 1001
+
+## modify configuration file.
+RUN ini-file set --section "mysqld" --key "collation-server" --value "utf8_general_ci" "/opt/bitnami/mariadb-galera/conf/my.cnf"
+
+## Modify the ports used by MariaDB by default
+# It is also possible to change these environment variables at runtime
+ENV MARIADB_PORT_NUMBER=3307
+EXPOSE 3307
+
+## Modify the default container user
+USER 1002
+```
+
+Based on the extended image, you can use a Docker Compose file like the one below to add other features:
+
+- Add a custom configuration
+
+```yaml
+version: '2'
+
+services:
+  mariadb:
+    build: .
+    ports:
+      - '3306:3307'
+    volumes:
+      - /path/to/my_custom.cnf:/opt/bitnami/mariadb-galera/conf/my_custom.cnf:ro
+      - data:/bitnami/mariadb-galera/data
+volumes:
+  data:
+    driver: local
 ```
 
 # Logging
@@ -596,6 +674,10 @@ $ docker-compose up mariadb
 
 # Notable Changes
 
+## 10.4.13-debian-10-r12, 10.3.23-debian-10-r14, 10.2.32-debian-10-r14 and 10.1.45-debian-10-r15
+
+- This image has been adapted so it's easier to customize. See the [Customize this image](#customize-this-image) section for more information.
+
 ## 10.4.12-debian-10-r53, 10.3.22-debian-10-r54, 10.2.31-debian-10-r53, and 10.1.44-debian-10-r53
 
 - The MariaDB Galera container has been migrated to a "non-root" user approach. Previously the container ran as the `root` user, and the MySQL daemon was started as the `mysql` user. From now on, both the container and the MySQL daemon run as user `1001`. You can revert this behavior by changing `USER 1001` to `USER root` in the Dockerfile.
@@ -626,7 +708,7 @@ If you encountered a problem running this container, you can file an [issue](htt
 
 # License
 
-Copyright 2020 Bitnami
+Copyright 2021 Bitnami
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

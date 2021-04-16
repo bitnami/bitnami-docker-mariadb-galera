@@ -6,6 +6,7 @@
 
 # Load Generic Libraries
 . /opt/bitnami/scripts/liblog.sh
+. /opt/bitnami/scripts/libfs.sh
 
 # Functions
 
@@ -37,14 +38,34 @@ group_exists() {
 # Create a group in the system if it does not exist already
 # Arguments:
 #   $1 - group
+# Flags:
+#   -s|--system - Whether to create new user as system user (uid <= 999)
 # Returns:
 #   None
 #########################
 ensure_group_exists() {
     local group="${1:?group is missing}"
+    local is_system_user=false
+
+    # Validate arguments
+    shift 1
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -s|--system)
+                is_system_user=true
+                ;;
+            *)
+                echo "Invalid command line flag $1" >&2
+                return 1
+                ;;
+        esac
+        shift
+    done
 
     if ! group_exists "$group"; then
-        groupadd "$group" >/dev/null 2>&1
+        local -a args=("$group")
+        $is_system_user && args+=("--system")
+        groupadd "${args[@]}" >/dev/null 2>&1
     fi
 }
 
@@ -52,21 +73,59 @@ ensure_group_exists() {
 # Create an user in the system if it does not exist already
 # Arguments:
 #   $1 - user
-#   $2 - group
+# Flags:
+#   -g|--group - the group the new user should belong to
+#   -h|--home - the home directory for the new user
+#   -s|--system - whether to create new user as system user (uid <= 999)
 # Returns:
 #   None
 #########################
 ensure_user_exists() {
     local user="${1:?user is missing}"
-    local group="${2:-}"
+    local group=""
+    local home=""
+    local is_system_user=false
+
+    # Validate arguments
+    shift 1
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -g|--group)
+                shift
+                group="${1:?missing group}"
+                ;;
+            -h|--home)
+                shift
+                home="${1:?missing home directory}"
+                ;;
+            -s|--system)
+                is_system_user=true
+                ;;
+            *)
+                echo "Invalid command line flag $1" >&2
+                return 1
+                ;;
+        esac
+        shift
+    done
 
     if ! user_exists "$user"; then
-        useradd "$user" >/dev/null 2>&1
+        local -a user_args=("-N" "$user")
+        $is_system_user && user_args+=("--system")
+        useradd "${user_args[@]}" >/dev/null 2>&1
     fi
 
     if [[ -n "$group" ]]; then
-        ensure_group_exists "$group"
-        usermod -a -G "$group" "$user" >/dev/null 2>&1
+        local -a group_args=("$group")
+        $is_system_user && group_args+=("--system")
+        ensure_group_exists "${group_args[@]}"
+        usermod -g "$group" "$user" >/dev/null 2>&1
+    fi
+
+    if [[ -n "$home" ]]; then
+        mkdir -p "$home"
+        usermod -d "$home" "$user" >/dev/null 2>&1
+        configure_permissions_ownership "$home" -d "775" -f "664" -u "$user" -g "$group"
     fi
 }
 
@@ -102,12 +161,28 @@ get_total_memory() {
 # Globals:
 #   None
 # Arguments:
-#   $1 - memory size (optional)
+#   None
+# Flags:
+#   --memory - memory size (optional)
 # Returns:
 #   Detected instance size
 #########################
 get_machine_size() {
-    local memory="${1:-}"
+    local memory=""
+    # Validate arguments
+    while [[ "$#" -gt 0 ]]; do
+        case "$1" in
+            --memory)
+                shift
+                memory="${1:?missing memory}"
+                ;;
+            *)
+                echo "Invalid command line flag $1" >&2
+                return 1
+                ;;
+        esac
+        shift
+    done
     if [[ -z "$memory" ]]; then
         debug "Memory was not specified, detecting available memory automatically"
         memory="$(get_total_memory)"
@@ -152,10 +227,10 @@ get_supported_machine_sizes() {
 #########################
 convert_to_mb() {
     local amount="${1:-}"
-    if [[ $amount =~ ^([0-9]+)(M|G) ]]; then
+    if [[ $amount =~ ^([0-9]+)(m|M|g|G) ]]; then
         size="${BASH_REMATCH[1]}"
         unit="${BASH_REMATCH[2]}"
-        if [[ "$unit" = "G" ]]; then
+        if [[ "$unit" = "g" || "$unit" = "G" ]]; then
            amount="$((size * 1024))"
         else
             amount="$size"
@@ -203,4 +278,73 @@ retry_while() {
         sleep "$sleep_time"
     done
     return $return_value
+}
+
+########################
+# Generate a random string
+# Arguments:
+#   -t|--type - String type (ascii, alphanumeric, numeric), defaults to ascii
+#   -c|--count - Number of characters, defaults to 32
+# Arguments:
+#   None
+# Returns:
+#   None
+# Returns:
+#   String
+#########################
+generate_random_string() {
+    local type="ascii"
+    local count="32"
+    local filter
+    local result
+    # Validate arguments
+    while [[ "$#" -gt 0 ]]; do
+        case "$1" in
+            -t|--type)
+                shift
+                type="$1"
+                ;;
+            -c|--count)
+                shift
+                count="$1"
+                ;;
+            *)
+                echo "Invalid command line flag $1" >&2
+                return 1
+                ;;
+        esac
+        shift
+    done
+    # Validate type
+    case "$type" in
+        ascii)
+            filter="[:print:]"
+            ;;
+        alphanumeric)
+            filter="a-zA-Z0-9"
+            ;;
+        numeric)
+            filter="0-9"
+            ;;
+        *)
+        echo "Invalid type ${type}" >&2
+        return 1
+    esac
+    # Obtain count + 10 lines from /dev/urandom to ensure that the resulting string has the expected size
+    # Note there is a very small chance of strings starting with EOL character
+    # Therefore, the higher amount of lines read, this will happen less frequently
+    result="$(head -n "$((count + 10))" /dev/urandom | tr -dc "$filter" | head -c "$count")"
+    echo "$result"
+}
+
+########################
+# Create md5 hash from a string
+# Arguments:
+#   $1 - string
+# Returns:
+#   md5 hash - string
+#########################
+generate_md5_hash() {
+  local -r str="${1:?missing input string}"
+  echo -n "$str" | md5sum | awk '{print $1}'
 }

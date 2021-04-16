@@ -2,8 +2,7 @@
 #
 # Bitnami LDAP library
 
-# shellcheck disable=SC1090
-# shellcheck disable=SC1091
+# shellcheck disable=SC1090,SC1091
 
 # Load libraries
 . /opt/bitnami/scripts/libfs.sh
@@ -30,6 +29,9 @@ export LDAP_BASE_LOOKUP="${LDAP_BASE_LOOKUP:-}"
 export LDAP_NSS_INITGROUPS_IGNOREUSERS="${LDAP_NSS_INITGROUPS_IGNOREUSERS:-root,nslcd}"
 export LDAP_SCOPE="${LDAP_SCOPE:-}"
 export LDAP_TLS_REQCERT="${LDAP_TLS_REQCERT:-}"
+export LDAP_SEARCH_FILTER="${LDAP_SEARCH_FILTER:-}"
+export LDAP_SEARCH_MAP="${LDAP_SEARCH_MAP:-}"
+
 EOF
     if [[ "$OS_FLAVOUR" =~ ^debian-.*$ ]]; then
         cat <<"EOF"
@@ -54,9 +56,9 @@ EOF
 ldap_openldap_config_path() {
     local openldap_config
     case "$OS_FLAVOUR" in
-        debian-*) openldap_config=/etc/ldap/ldap.conf ;;
+        debian-*|ubuntu-*) openldap_config=/etc/ldap/ldap.conf ;;
         centos-*|rhel-*|ol-*|photon-*) openldap_config=/etc/openldap/ldap.conf ;;
-        *) ;;
+        *) error "Unsupported OS flavor ${OS_FLAVOUR}" && exit 1 ;;
     esac
     echo "$openldap_config"
 }
@@ -121,6 +123,18 @@ EOF
         cat >>"/etc/nslcd.conf"<<EOF
 # The search scope
 scope $LDAP_SCOPE
+EOF
+    fi
+    if [[ -n "${LDAP_SEARCH_FILTER}" ]]; then
+        cat >>"/etc/nslcd.conf"<<EOF
+# LDAP search filter to use for posix users
+filter passwd (objectClass=$LDAP_SEARCH_FILTER)
+EOF
+    fi
+    if [[ -n "${LDAP_SEARCH_MAP}" ]]; then
+        cat >>"/etc/nslcd.conf"<<EOF
+# Used for lookup of custom attributes
+map passwd uid $LDAP_SEARCH_MAP
 EOF
     fi
     if [[ -n "${LDAP_TLS_REQCERT}" ]]; then
