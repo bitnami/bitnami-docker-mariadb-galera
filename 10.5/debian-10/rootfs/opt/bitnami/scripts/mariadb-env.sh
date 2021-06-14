@@ -11,7 +11,7 @@
 # Load logging library
 . /opt/bitnami/scripts/liblog.sh
 
-export BITNAMI_ROOT_DIR="/opt/bitnami"
+export BITNAMI_ROOT_DIR="/bitnami"
 export BITNAMI_VOLUME_DIR="/bitnami"
 
 # Logging configuration
