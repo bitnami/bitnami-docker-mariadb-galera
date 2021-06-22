@@ -95,10 +95,10 @@ get_galera_cluster_bootstrap_value() {
     # When the node is not marked to bootstrap, the node will join an existing cluster.
     if is_boolean_yes "$DB_GALERA_FORCE_SAFETOBOOTSTRAP"; then
         clusterBootstrap="yes"
-    elif is_boolean_yes "$DB_GALERA_CLUSTER_BOOTSTRAP"; then
-        clusterBootstrap="yes"
     elif is_boolean_yes "$(get_previous_boot)"; then
         clusterBootstrap="no"
+    elif is_boolean_yes "$DB_GALERA_CLUSTER_BOOTSTRAP"; then
+        clusterBootstrap="yes"
     elif ! is_boolean_yes "$(has_galera_cluster_other_nodes)"; then
         clusterBootstrap="yes"
     else
