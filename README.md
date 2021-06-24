@@ -425,13 +425,13 @@ In a MariaDB Galera cluster the first node should be a bootstrap node (started w
 
 ### Step 1: Bootstrap the cluster
 
-First let's create a docker bridge network for the containers to communicate, because `--link` is deprecated.
+First let's create a docker bridge network for the containers to communicate.
 
 ```console
 docker network create galera
 ```
 
-The first step is to start the MariaDB Galera bootstrap node.
+To bootstrap the Galera cluster we first have to start a bootstrap node.
 
 ```console
 $ docker run -d --name mariadb-galera-0 --network galera \
@@ -449,7 +449,7 @@ $ docker run -d --name mariadb-galera-0 --network galera \
   bitnami/mariadb-galera:latest
 ```
 
-In the above command the container is configured as the bootstrap node by specifying the `MARIADB_GALERA_CLUSTER_BOOTSTRAP` parameter. The SST user is specified using the `MARIADB_GALERA_MARIABACKUP_USER` and `MARIADB_GALERA_MARIABACKUP_PASSWORD` parameters and a cluster name is specified using the `MARIADB_GALERA_CLUSTER_NAME` parameter.
+In the above command the container is configured as the bootstrap node by setting the `MARIADB_GALERA_CLUSTER_BOOTSTRAP` parameter to `yes`. The SST user is specified using the `MARIADB_GALERA_MARIABACKUP_USER` and `MARIADB_GALERA_MARIABACKUP_PASSWORD` parameters and a cluster name is specified using the `MARIADB_GALERA_CLUSTER_NAME` parameter.
 
 Even though `MARIADB_GALERA_CLUSTER_ADDRESS` is optional on the bootstrap node, it is best practice to always define the complete cluster address on every node. As bootstrapping only happens when the container is started the very first time, consecutive restarts of this container will use `MARIADB_GALERA_CLUSTER_ADDRESS` to join the rest of the cluster.
 
@@ -464,12 +464,15 @@ $ docker run -d --name mariadb-galera-1 --network galera \
   -e MARIADB_GALERA_MARIABACKUP_USER=my_mariabackup_user \
   -e MARIADB_GALERA_MARIABACKUP_PASSWORD=my_mariabackup_password \
   -e MARIADB_ROOT_PASSWORD=my_root_password \
+  -e MARIADB_GALERA_CLUSTER_BOOTSTRAP=no \
   -e MARIADB_REPLICATION_USER=my_replication_user \
   -e MARIADB_REPLICATION_PASSWORD=my_replication_password \
   bitnami/mariadb-galera:latest
 ```
 
 In the above command a new node is created and configured to join the bootstrapped MariaDB Galera cluster by specifying the `MARIADB_GALERA_CLUSTER_ADDRESS` parameter. The `MARIADB_GALERA_CLUSTER_NAME`, `MARIADB_GALERA_MARIABACKUP_USER` and `MARIADB_GALERA_MARIABACKUP_PASSWORD` are also specified for the Snapshot State Transfer (SST).
+
+The parameter `MARIADB_GALERA_CLUSTER_BOOTSTRAP=no` is not strictly necessary. If it is omitted, the node will try to guess if bootstrapping is necessary. In most cases it will guess correctly, but in some environments it may guess incorrectly, especially when using Dockers host networking (`--network host`).
 
 You now have a two node MariaDB Galera cluster up and running. Write to any node of the cluster are automatically propagated to every node. You can scale the cluster by adding/removing slaves without incurring any downtime.
 
